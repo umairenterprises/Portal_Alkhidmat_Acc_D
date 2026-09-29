@@ -182,7 +182,7 @@
       <div class="flex items-center justify-between no-print">
         <div>
           <h2 class="text-xl font-bold text-slate-800">Account Ledger Records</h2>
-          <p class="text-xs text-slate-500">Exact 14 Headings view, search, export and import</p>
+          <p class="text-xs text-slate-500">Search, view, edit, export and import — Print/Excel me sab 14 fields shamil hain</p>
         </div>
         <button onclick="openModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg shadow flex items-center gap-1.5">
           <i class="fa-solid fa-plus"></i> New Record
@@ -242,10 +242,6 @@
                 <th class="py-2.5 px-2">City*</th>
                 <th class="py-2.5 px-2">Name/Account*</th>
                 <th class="py-2.5 px-2 text-right">Income*</th>
-                <th class="py-2.5 px-2">Mobile Number (D)</th>
-                <th class="py-2.5 px-2">Email (if)</th>
-                <th class="py-2.5 px-2">Reference C/o</th>
-                <th class="py-2.5 px-2">Mobile No Reference</th>
                 <th class="py-2.5 px-2 text-center no-print">Action</th>
               </tr>
             </thead>
@@ -412,6 +408,18 @@
           <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded shadow">Save Record</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ================= VIEW RECORD MODAL ================= -->
+  <div id="viewModal" class="fixed inset-0 z-[60] bg-slate-900 bg-opacity-50 hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col">
+      <div class="p-3 border-b flex items-center justify-between">
+        <h3 class="font-bold text-sm text-slate-800"><i class="fa-solid fa-eye mr-1.5 text-emerald-600"></i> Record Details</h3>
+        <button type="button" onclick="closeViewModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="viewModalBody" class="overflow-y-auto flex-grow p-4"></div>
+      <div class="p-2 border-t text-right"><button type="button" onclick="closeViewModal()" class="px-4 py-1.5 text-xs font-semibold text-slate-600 border rounded hover:bg-slate-100">Close</button></div>
     </div>
   </div>
 
@@ -839,7 +847,7 @@
       tbody.innerHTML = '';
 
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="15" class="text-center py-6 text-slate-400">No records found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-6 text-slate-400">No records found.</td></tr>`;
         return;
       }
 
@@ -857,13 +865,10 @@
           <td class="py-2.5 px-2">${esc(r.city)}</td>
           <td class="py-2.5 px-2 font-medium">${esc(r.nameAccount)}</td>
           <td class="py-2.5 px-2 text-right font-bold text-emerald-600">PKR ${Number(r.income).toLocaleString()}</td>
-          <td class="py-2.5 px-2">${esc(r.mobileD || '-')}</td>
-          <td class="py-2.5 px-2">${esc(r.email || '-')}</td>
-          <td class="py-2.5 px-2">${esc(r.refCo || '-')}</td>
-          <td class="py-2.5 px-2">${esc(r.refMobile || '-')}</td>
-          <td class="py-2.5 px-2 text-center no-print">
-            <button onclick="editEntry(${r.id})" class="text-blue-600 hover:text-blue-800 mr-2"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="deleteEntry(${r.id})" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+          <td class="py-2.5 px-2 text-center no-print whitespace-nowrap">
+            <button onclick="viewEntry(${r.id})" class="text-slate-600 hover:text-slate-900 mr-2" title="View"><i class="fa-solid fa-eye"></i></button>
+            <button onclick="editEntry(${r.id})" class="text-blue-600 hover:text-blue-800 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry(${r.id})" class="text-rose-600 hover:text-rose-800" title="Delete"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -946,9 +951,49 @@
       closeModal();
       refreshApp();
       queueSync();
+      showToast('Good Job! Record save ho gaya.');
     }
 
     function editEntry(id) { openModal(id); }
+
+    function viewEntry(id) {
+      const r = records.find(x => x.id === id);
+      if (!r) return;
+      const rows = [
+        ['Date', r.date], ['Month', r.month], ['Book No', r.bookNo], ['Receipt No', r.receiptNo || '-'],
+        ['Amount Type', r.amountType], ['Head Account', r.headAccount], ['Sub Head', r.subHead], ['City', r.city],
+        ['Name/Account', r.nameAccount], ['Income', 'PKR ' + Number(r.income).toLocaleString()],
+        ['Mobile Number (D)', r.mobileD || '-'], ['Email', r.email || '-'],
+        ['Reference C/o', r.refCo || '-'], ['Mobile No Reference', r.refMobile || '-']
+      ];
+      document.getElementById('viewModalBody').innerHTML = rows.map(([k, v]) => `
+        <div class="flex justify-between gap-4 py-1.5 border-b border-slate-100 text-xs">
+          <span class="text-slate-500">${esc(k)}</span><span class="font-medium text-slate-800 text-right">${esc(v)}</span>
+        </div>`).join('');
+      document.getElementById('viewModal').classList.remove('hidden');
+      document.getElementById('viewModal').classList.add('flex');
+    }
+
+    function closeViewModal() {
+      document.getElementById('viewModal').classList.add('hidden');
+      document.getElementById('viewModal').classList.remove('flex');
+    }
+
+    function showToast(msg) {
+      let t = document.getElementById('toastBox');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'toastBox';
+        t.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] bg-emerald-700 text-white px-5 py-3 rounded-lg shadow-xl text-sm font-semibold flex items-center gap-2 transition-opacity duration-300';
+        document.body.appendChild(t);
+      }
+      t.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${esc(msg)}`;
+      t.style.opacity = '1';
+      t.classList.remove('hidden');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.classList.add('hidden'), 300); }, 3000);
+    }
+
 
     function deleteEntry(id) {
       if (confirm('Kya aap waqai is record ko delete karna chahte hain?')) {
@@ -960,13 +1005,30 @@
     }
 
     /* EXCEL IMPORT FUNCTIONALITY */
+    function excelSerialToISO(n) {
+      const utcDays = Math.floor(n - 25569);
+      const d = new Date(utcDays * 86400 * 1000);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }
     function toISODate(v) {
       if (v instanceof Date && !isNaN(v)) return new Date(v.getTime() - v.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-      return v ? String(v).trim() : new Date().toISOString().split('T')[0];
+      if (typeof v === 'number' && v > 10000 && v < 90000) return excelSerialToISO(v);
+      if (typeof v === 'string' && v.trim()) {
+        const s = v.trim();
+        const d = new Date(s);
+        if (!isNaN(d) && /\d{4}/.test(s)) return d.toISOString().split('T')[0];
+      }
+      return new Date().toISOString().split('T')[0];
     }
     function monthName(d) {
       const x = new Date(d);
       return isNaN(x) ? '' : x.toLocaleString('en-US', { month: 'long' });
+    }
+
+    function normalizeRow(row) {
+      const out = {};
+      Object.keys(row).forEach(k => { out[k.trim().toLowerCase().replace(/\s+/g, ' ')] = row[k]; });
+      return out;
     }
 
     function importExcelData(event) {
@@ -977,44 +1039,52 @@
       reader.onload = function(e) {
         try {
           const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const workbook = XLSX.read(data, { type: 'array' });
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
 
           let count = 0, skipped = 0;
           const ddMap = [['headAccounts','headAccount'],['subAccounts','subHead'],['cities','city'],['amountTypes','amountType'],['names','nameAccount']];
-          const val = (row, keys, def = '') => String(keys.map(k => row[k]).find(v => v !== undefined && v !== '') ?? def).trim();
+          const val = (row, keys, def = '') => {
+            for (const k of keys) {
+              const v = row[k];
+              if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+            }
+            return def;
+          };
           const seenReceipts = new Set(records.map(r => (r.receiptNo || '').trim().toLowerCase()).filter(Boolean));
 
-          jsonData.forEach(row => {
-            const incomeVal = parseFloat(row["Income*"] || row["Income"] || row["Amount"]) || 0;
-            const rNo = val(row, ["Receipt No"]);
+          jsonData.forEach(rawRow => {
+            const row = normalizeRow(rawRow);
+            const incomeVal = parseFloat(val(row, ['income*', 'income', 'amount']).replace(/,/g, '')) || 0;
+            const rNo = val(row, ['receipt no*', 'receipt no', 'receiptno']);
             if (rNo && seenReceipts.has(rNo.toLowerCase())) { skipped++; return; }
             if (incomeVal > 0) {
               if (rNo) seenReceipts.add(rNo.toLowerCase());
-              const date = toISODate(row["Date*"] || row["Date"]);
+              const rawDate = row['date*'] !== undefined ? row['date*'] : row['date'];
+              const date = toISODate(rawDate);
               const rec = {
                 id: Date.now() + count,
                 updatedAt: Date.now(),
                 date: date,
-                month: val(row, ["Month*", "Month"], monthName(date) || "September"),
-                bookNo: val(row, ["Book No*", "Book No"], "BK-01"),
-                receiptNo: val(row, ["Receipt No"]),
-                amountType: val(row, ["Amount Type Cash-Cheque", "Amount Type"], "Cash"),
-                headAccount: val(row, ["Head Account*", "Head Account"], "General Sadqah"),
-                subHead: val(row, ["Sub Head*", "Sub Head"], "General Donation"),
-                city: val(row, ["City*", "City"], "Mirpurkhas"),
-                nameAccount: val(row, ["Name/Account*", "Name/Account"], "General Donor"),
+                month: val(row, ['month*', 'month'], monthName(date) || 'September'),
+                bookNo: val(row, ['book no*', 'book no', 'bookno'], 'BK-01'),
+                receiptNo: rNo,
+                amountType: val(row, ['amount type cash-cheque', 'amount type', 'amounttype'], 'Cash'),
+                headAccount: val(row, ['head account*', 'head account'], 'General Sadqah'),
+                subHead: val(row, ['sub head*', 'sub head'], 'General Donation'),
+                city: val(row, ['city*', 'city'], 'Mirpurkhas'),
+                nameAccount: val(row, ['name/account*', 'name/account', 'name'], 'General Donor'),
                 income: incomeVal,
-                mobileD: val(row, ["Mobile Number (D)"]),
-                email: val(row, ["Email (if)"]),
-                refCo: val(row, ["Reference C/o"]),
-                refMobile: val(row, ["Mobile No Reference"])
+                mobileD: val(row, ['mobile number (d)', 'mobile number(d)', 'mobile number']),
+                email: val(row, ['email (if)', 'email']),
+                refCo: val(row, ['reference c/o', 'reference']),
+                refMobile: val(row, ['mobile no reference', 'mobile no. reference'])
               };
               // naye values dropdown lists me auto add (same spelling ho to existing use hoga)
               ddMap.forEach(([k, f]) => {
                 const hit = dropdowns[k].find(x => x.toLowerCase() === rec[f].toLowerCase());
-                if (hit) rec[f] = hit; else dropdowns[k].push(rec[f]);
+                if (hit) rec[f] = hit; else if (rec[f]) dropdowns[k].push(rec[f]);
               });
               records.push(rec);
               count++;
@@ -1023,13 +1093,16 @@
 
           dropdownsChanged();
           refreshApp();
+          queueSync();
           alert(`${count} records import ho gaye.` + (skipped ? ` ${skipped} records duplicate Receipt No ki wajah se skip kar diye gaye.` : ''));
         } catch (err) {
-          alert("Excel file format check karein. File read nahi ho saki.");
+          console.error(err);
+          alert('Excel file format check karein. File read nahi ho saki.');
         }
       };
       reader.readAsArrayBuffer(file);
     }
+
 
     /* EXCEL EXPORT FUNCTIONALITY */
     function exportExcel() {

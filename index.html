@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alkhidmat Foundation - MPK District Accounts</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SheetJS for Excel Reading/Writing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+        font-size: 8pt;
+      }
+      .no-print, aside, nav, button, input, select {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      #tab-records {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 7.5pt !important;
+      }
+      th, td {
+        border: 1px solid #94a3b8 !important;
+        padding: 4px 3px !important;
+        color: black !important;
+      }
+      th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        font-weight: bold !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col md:flex-row">
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900 bg-opacity-95 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-slate-200">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mb-3">
+          <i class="fa-solid fa-building-columns text-2xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800">Alkhidmat MPK District</h2>
+        <p class="text-sm text-slate-500 mt-1">District Account Management Portal</p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Username</label>
+          <input type="text" id="loginUsername" required autocomplete="username" class="w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Password</label>
+          <input type="password" id="loginPassword" required autocomplete="current-password" class="w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div id="loginError" class="text-xs text-rose-600 font-medium hidden">
+          <i class="fa-solid fa-circle-exclamation mr-1"></i> Invalid credentials.
+        </div>
+        <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow transition-all">
+          Login to Portal
+        </button>
+      </form>
+      <p class="text-center text-[11px] text-slate-400 mt-5">Powered by Umair Sajid</p>
+    </div>
+  </div>
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="w-full md:w-64 bg-emerald-900 text-slate-100 flex-shrink-0 flex flex-col no-print">
+    <div class="p-4 border-b border-emerald-800 flex items-center space-x-3">
+      <img src="logo.png" alt="Logo" class="h-10 w-auto max-w-[45px] object-contain rounded bg-white p-1" onerror="this.style.display='none'">
+      <div>
+        <h1 class="font-bold text-base leading-tight">Alkhidmat MPK</h1>
+        <p class="text-[11px] text-emerald-300">District Account Office</p>
+      </div>
+    </div>
+
+    <nav class="flex-grow p-4 space-y-1.5 text-sm font-medium">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-emerald-800 text-white transition-all">
+        <i class="fa-solid fa-chart-pie text-emerald-300 w-5"></i> Dashboard
+      </button>
+
+      <button onclick="openModal()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg hover:bg-emerald-800/60 text-emerald-100 transition-all">
+        <i class="fa-solid fa-circle-plus text-emerald-300 w-5"></i> New Record
+      </button>
+
+      <button onclick="switchTab('records')" id="nav-records" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg hover:bg-emerald-800/60 text-emerald-100 transition-all">
+        <i class="fa-solid fa-table-list text-emerald-300 w-5"></i> View Records
+      </button>
+
+      <button onclick="switchTab('dropdowns')" id="nav-dropdowns" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg hover:bg-emerald-800/60 text-emerald-100 transition-all">
+        <i class="fa-solid fa-list-check text-emerald-300 w-5"></i> Manage Dropdowns
+      </button>
+
+      <button onclick="switchTab('settings')" id="nav-settings" class="hidden w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg hover:bg-emerald-800/60 text-emerald-100 transition-all">
+        <i class="fa-solid fa-sliders text-emerald-300 w-5"></i> Settings & Cloud Sync
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-emerald-800 bg-emerald-950/40 text-xs flex justify-between items-center">
+      <span class="text-emerald-200 font-semibold"><i class="fa-solid fa-user-shield"></i> Admin Logged In</span>
+      <button onclick="logout()" class="text-rose-300 hover:text-rose-100 font-bold">Logout</button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <div class="flex-grow flex flex-col min-w-0">
+
+    <!-- DASHBOARD -->
+    <main id="tab-dashboard" class="flex-grow p-4 md:p-6 space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">Financial Dashboard</h2>
+          <p class="text-xs text-slate-500">Summary overview of income receipts & ledger stats</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="openModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg shadow flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> New Record
+          </button>
+          <button onclick="switchTab('records')" class="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-medium text-xs rounded-lg shadow flex items-center gap-1.5">
+            <i class="fa-solid fa-table-list"></i> View Records
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase text-slate-400">Total Income Collection</p>
+            <h3 id="statIncome" class="text-2xl font-bold text-emerald-600 mt-1">PKR 0</h3>
+          </div>
+          <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-xl"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase text-slate-400">Total Records</p>
+            <h3 id="statCount" class="text-2xl font-bold text-purple-600 mt-1">0</h3>
+          </div>
+          <div class="p-3 bg-purple-50 text-purple-600 rounded-xl text-xl"><i class="fa-solid fa-file-invoice"></i></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase text-slate-400">App Mode</p>
+            <h3 id="syncStatus" class="text-base font-bold text-emerald-600 mt-1">Local Storage</h3>
+          </div>
+          <div class="p-3 bg-blue-50 text-blue-600 rounded-xl text-xl"><i class="fa-solid fa-database"></i></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl shadow-sm border">
+        <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-chart-bar text-emerald-600 mr-2"></i> Income Collection by Head Account</h4>
+        <div class="h-64"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </main>
+
+    <!-- VIEW RECORDS -->
+    <main id="tab-records" class="flex-grow p-4 md:p-6 space-y-6 hidden">
+      <div class="flex items-center justify-between no-print">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">Account Ledger Records</h2>
+          <p class="text-xs text-slate-500">Exact 14 Headings view, search, export and import</p>
+        </div>
+        <button onclick="openModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg shadow flex items-center gap-1.5">
+          <i class="fa-solid fa-plus"></i> New Record
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center no-print">
+          <div class="flex flex-wrap gap-2 items-center flex-grow">
+            <div class="relative flex-grow max-w-xs">
+              <input type="text" id="searchInput" oninput="filterTable()" placeholder="Search Receipt, Donor, City..." class="w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+            </div>
+            <select id="filterHead" onchange="filterTable()" class="py-1.5 px-3 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="ALL">All Heads</option>
+            </select>
+            <select id="filterCity" onchange="filterTable()" class="py-1.5 px-3 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="ALL">All Cities</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1">
+              <i class="fa-solid fa-file-excel"></i> Import Excel
+              <input type="file" id="importExcelInput" accept=".xlsx, .xls, .csv" onchange="importExcelData(event)" class="hidden">
+            </label>
+            <button onclick="exportExcel()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs rounded-lg flex items-center gap-1">
+              <i class="fa-solid fa-download"></i> Export Excel
+            </button>
+            <button onclick="window.print()" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-medium text-xs rounded-lg flex items-center gap-1">
+              <i class="fa-solid fa-print"></i> Print A4 Record
+            </button>
+          </div>
+        </div>
+
+        <!-- PRINT HEADING -->
+        <div class="hidden print-only text-center pb-3 mb-3 border-b">
+          <div class="flex items-center justify-center gap-3 mb-1">
+            <img src="logo.png" alt="Logo" class="h-10 w-auto">
+            <h2 class="text-lg font-bold text-slate-900">Alkhidmat Foundation - Mirpurkhas District Office</h2>
+          </div>
+          <p class="text-xs text-slate-600 font-semibold uppercase">Official Financial Accounts Ledger Statement</p>
+        </div>
+
+        <!-- TABLE WITH EXACT HEADINGS -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 uppercase font-semibold border-b text-[11px]">
+                <th class="py-2.5 px-2">Date*</th>
+                <th class="py-2.5 px-2">Month*</th>
+                <th class="py-2.5 px-2">Book No*</th>
+                <th class="py-2.5 px-2">Receipt No</th>
+                <th class="py-2.5 px-2">Amount Type Cash-Cheque</th>
+                <th class="py-2.5 px-2">Head Account*</th>
+                <th class="py-2.5 px-2">Sub Head*</th>
+                <th class="py-2.5 px-2">City*</th>
+                <th class="py-2.5 px-2">Name/Account*</th>
+                <th class="py-2.5 px-2 text-right">Income*</th>
+                <th class="py-2.5 px-2">Mobile Number (D)</th>
+                <th class="py-2.5 px-2">Email (if)</th>
+                <th class="py-2.5 px-2">Reference C/o</th>
+                <th class="py-2.5 px-2">Mobile No Reference</th>
+                <th class="py-2.5 px-2 text-center no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerTableBody" class="divide-y divide-slate-100">
+              <!-- JS Injected -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- MANAGE DROPDOWNS -->
+    <main id="tab-dropdowns" class="flex-grow p-4 md:p-6 space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border p-5">
+        <h3 class="text-lg font-bold text-slate-800 mb-1">Manage Dropdown Lists</h3>
+        <p class="text-xs text-slate-500 mb-6">Head Accounts, Sub Heads, Cities, aur Amount Types ko yahan se add ya delete karein.</p>
+
+        <!-- Dynamic Dropdowns Grid -->
+        <div id="dropdownCategoriesList"></div>
+      </div>
+    </main>
+
+    <!-- SETTINGS & CLOUD SYNC -->
+    <main id="tab-settings" class="flex-grow p-4 md:p-6 space-y-6 hidden">
+      <div class="bg-white p-6 rounded-xl shadow-sm border max-w-xl space-y-4">
+        <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-cloud-arrow-up text-emerald-600 mr-2"></i> Google Sheet Cloud Sync</h3>
+        <p class="text-xs text-slate-600">App poori tarah offline chalti hai. Data pehle isi device me save hota hai, aur internet milte hi Google Sheet ke saath sync ho jata hai (sab devices ka data merge hota hai).</p>
+        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-2">
+          <label class="block font-semibold text-slate-700">Web App URL</label>
+          <input type="text" id="googleSheetUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-emerald-500 bg-white">
+          <label class="block font-semibold text-slate-700">Sync Key (Code.gs ki SECRET wali value)</label>
+          <input type="password" id="syncKey" class="w-full px-3 py-2 border rounded text-xs focus:ring-2 focus:ring-emerald-500 bg-white">
+          <div class="flex gap-2 pt-1">
+            <button onclick="saveCloudConfig()" class="px-3 py-1.5 bg-emerald-600 text-white font-semibold rounded hover:bg-emerald-700">Save &amp; Sync</button>
+            <button onclick="syncNow(true)" class="px-3 py-1.5 bg-slate-700 text-white font-semibold rounded hover:bg-slate-800">Sync Now</button>
+          </div>
+          <p id="syncInfo" class="text-slate-600"></p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border max-w-xl space-y-4">
+          <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-users text-emerald-600 mr-2"></i> Manage Users</h3>
+          <p class="text-xs text-slate-600">Naye login accounts banayein. "Staff" role ko Settings tab nazar nahi aata.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <input type="text" id="newUserName" placeholder="Username" autocomplete="off" class="sm:col-span-1 px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500">
+            <input type="password" id="newUserPass" placeholder="Password" autocomplete="new-password" class="sm:col-span-1 px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500">
+            <select id="newUserRole" class="sm:col-span-1 px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500">
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button onclick="addUser()" class="sm:col-span-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg">Add User</button>
+          </div>
+          <div class="overflow-x-auto border rounded-lg">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px] border-b">
+                  <th class="py-2 px-3">Username</th>
+                  <th class="py-2 px-3">Role</th>
+                  <th class="py-2 px-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <details class="text-xs text-slate-600">
+          <summary class="cursor-pointer font-semibold">Setup kaise karein?</summary>
+          <ol class="list-decimal ml-5 mt-2 space-y-1">
+            <li>Nayi Google Sheet banayein, Extensions &gt; Apps Script kholein.</li>
+            <li>Code.gs ka code paste karein aur SECRET badal lein.</li>
+            <li>Deploy &gt; New deployment &gt; Web app: Execute as "Me", Access "Anyone".</li>
+            <li>/exec wali URL aur wahi SECRET yahan save karein.</li>
+          </ol>
+        </details>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ================= ADD / EDIT MODAL ================= -->
+  <div id="entryModal" class="fixed inset-0 z-40 bg-slate-900 bg-opacity-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full border flex flex-col max-h-[96vh]">
+      <div class="px-5 py-3 bg-emerald-800 text-white flex justify-between items-center rounded-t-xl">
+        <h3 class="font-bold text-sm sm:text-base"><i class="fa-solid fa-pen-to-square mr-2"></i> Account Entry Form</h3>
+        <button onclick="closeModal()" class="text-emerald-200 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="entryForm" onsubmit="saveEntry(event)" class="p-4 sm:p-5 space-y-3 overflow-y-auto flex-grow text-xs">
+        <input type="hidden" id="entryIndex">
+
+        <!-- Row 1 -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Date*</label>
+            <input type="date" id="entryDate" onchange="autoSetMonth()" required class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Month*</label>
+            <input type="text" id="entryMonth" required placeholder="e.g. September" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Book No*</label>
+            <input type="text" id="entryBookNo" required placeholder="Book #" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Receipt No</label>
+            <input type="text" id="entryReceiptNo" placeholder="Receipt #" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Amount Type Cash-Cheque</label>
+            <select id="entryAmountType" required class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500"></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Head Account*</label>
+            <select id="entryHeadAccount" required class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500"></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Sub Head*</label>
+            <select id="entrySubHead" required class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500"></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">City*</label>
+            <select id="entryCity" required class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500"></select>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Name/Account*</label>
+            <select id="entryNameAccount" required class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500"></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Income* (PKR)</label>
+            <input type="number" id="entryIncome" min="1" step="any" required placeholder="Amount" class="w-full px-2.5 py-1.5 border rounded-lg font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Mobile Number (D)</label>
+            <input type="text" id="entryMobileD" placeholder="03001234567" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Email (if)</label>
+            <input type="email" id="entryEmail" placeholder="donor@gmail.com" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Reference C/o</label>
+            <input type="text" id="entryRefCo" placeholder="Reference Person" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Mobile No Reference</label>
+            <input type="text" id="entryRefMobile" placeholder="03331122334" class="w-full px-2.5 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded shadow">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= SEARCHABLE PICKER ================= -->
+  <div id="pickerModal" class="fixed inset-0 z-[60] bg-slate-900 bg-opacity-50 hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <div class="p-3 border-b">
+        <input type="text" id="pickerSearch" oninput="renderPicker()" placeholder="Search..." autocomplete="off" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div id="pickerList" class="overflow-y-auto flex-grow divide-y"></div>
+      <div class="p-2 border-t text-right"><button type="button" onclick="closePicker()" class="px-4 py-1.5 text-xs font-semibold text-slate-600 border rounded hover:bg-slate-100">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT ================= -->
+  <script>
+    const defaultDropdowns = {
+      amountTypes: ['Cash', 'Cheque', 'Bank Transfer', 'Online / EasyPaisa', 'JazzCash'],
+      headAccounts: ['Zakat Collection', 'Orphan Care', 'Clean Water', 'Health & Medical', 'Disaster Relief', 'General Sadqah'],
+      subAccounts: ['General Donation', 'Monthly Stipend', 'Equipment & Service', 'Ration Distribution'],
+      cities: ['Mirpurkhas', 'Digri', 'Jhudo', 'Kot Ghulam Muhammad', 'Hussain Bux Mari', 'Sindhri'],
+      names: []
+    };
+    let users = JSON.parse(localStorage.getItem('alkhidmat_users')) || null;
+    if (!users || !users.length) {
+      users = [{ username: 'umairsajid200', password: '3599181', role: 'admin' }];
+      localStorage.setItem('alkhidmat_users', JSON.stringify(users));
+    }
+    let currentUser = JSON.parse(localStorage.getItem('alkhidmat_current_user')) || null;
+
+    const initialRecords = [
+      {
+        id: 1,
+        date: '2026-09-01',
+        month: 'September',
+        bookNo: 'BK-01',
+        receiptNo: 'REC-101',
+        amountType: 'Bank Transfer',
+        headAccount: 'Zakat Collection',
+        subHead: 'General Donation',
+        city: 'Mirpurkhas',
+        nameAccount: 'Local Campaign',
+        income: 250000,
+        mobileD: '03001234567',
+        email: 'donor@gmail.com',
+        refCo: 'Tariq Hussain',
+        refMobile: '03331122334'
+      }
+    ];
+
+    let dropdowns = JSON.parse(localStorage.getItem('alkhidmat_mpk_dropdowns')) || defaultDropdowns;
+    let records = JSON.parse(localStorage.getItem('alkhidmat_mpk_records')) || initialRecords;
+    let categoryChartObj = null;
+    let tomb = JSON.parse(localStorage.getItem('alkhidmat_tomb')) || {};
+    let ddUpdatedAt = Number(localStorage.getItem('alkhidmat_dd_ts')) || 0;
+    let syncTimer = null, syncing = false;
+
+    function ensureDropdownKeys() {
+      const map = [['headAccounts','headAccount'],['subAccounts','subHead'],['cities','city'],['amountTypes','amountType'],['names','nameAccount']];
+      map.forEach(([k, f]) => {
+        if (!Array.isArray(dropdowns[k])) dropdowns[k] = [];
+        records.forEach(r => { if (r[f] && !dropdowns[k].includes(r[f])) dropdowns[k].push(r[f]); });
+      });
+      records.forEach(r => { if (!r.updatedAt) r.updatedAt = 1; });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('alkhidmat_logged_in') === 'true' && currentUser) {
+        document.getElementById('loginScreen').style.display = 'none';
+        applyRoleUI();
+      }
+      ensureDropdownKeys();
+      initPickers();
+      populateDropdownUI();
+      renderDropdownManager();
+      refreshApp();
+      document.getElementById('googleSheetUrl').value = localStorage.getItem('alkhidmat_google_url') || '';
+      document.getElementById('syncKey').value = localStorage.getItem('alkhidmat_sync_key') || '';
+      if (localStorage.getItem('alkhidmat_google_url')) { setSyncStatus(navigator.onLine ? 'Ready' : 'Offline'); syncNow(); }
+      window.addEventListener('online', () => syncNow());
+      window.addEventListener('offline', () => setSyncStatus('Offline'));
+      setInterval(() => syncNow(), 60000);
+    });
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value.trim();
+      const match = users.find(x => x.username === u && x.password === p);
+      if (match) {
+        currentUser = { username: match.username, role: match.role };
+        localStorage.setItem('alkhidmat_current_user', JSON.stringify(currentUser));
+        localStorage.setItem('alkhidmat_logged_in', 'true');
+        document.getElementById('loginScreen').style.display = 'none';
+        applyRoleUI();
+        refreshApp();
+        if (localStorage.getItem('alkhidmat_google_url')) syncNow();
+      } else {
+        document.getElementById('loginError').classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('alkhidmat_logged_in');
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+
+    function applyRoleUI() {
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      const navSettings = document.getElementById('nav-settings');
+      if (navSettings) navSettings.classList.toggle('hidden', !isAdmin);
+      if (!isAdmin && !document.getElementById('tab-settings').classList.contains('hidden')) switchTab('dashboard');
+      if (isAdmin) renderUsers();
+    }
+
+    function addUser() {
+      const username = document.getElementById('newUserName').value.trim();
+      const password = document.getElementById('newUserPass').value.trim();
+      const role = document.getElementById('newUserRole').value;
+      if (!username || !password) { alert('Username aur password dono zaroori hain.'); return; }
+      if (users.some(x => x.username.toLowerCase() === username.toLowerCase())) { alert('Ye username pehle se maujood hai.'); return; }
+      users.push({ username, password, role });
+      localStorage.setItem('alkhidmat_users', JSON.stringify(users));
+      document.getElementById('newUserName').value = '';
+      document.getElementById('newUserPass').value = '';
+      renderUsers();
+    }
+
+    function removeUser(username) {
+      if (username === currentUser.username) { alert('Apna khud ka account delete nahi kar sakte.'); return; }
+      if (users.filter(x => x.role === 'admin').length <= 1 && users.find(x => x.username === username).role === 'admin') {
+        alert('Kam se kam ek admin account rehna zaroori hai.'); return;
+      }
+      if (!confirm(`"${username}" ko delete karein?`)) return;
+      users = users.filter(x => x.username !== username);
+      localStorage.setItem('alkhidmat_users', JSON.stringify(users));
+      renderUsers();
+    }
+
+    function renderUsers() {
+      const body = document.getElementById('usersBody');
+      if (!body) return;
+      body.innerHTML = users.map(u => `
+        <tr>
+          <td class="py-2 px-3 font-medium text-slate-800">${esc(u.username)}</td>
+          <td class="py-2 px-3">${esc(u.role)}</td>
+          <td class="py-2 px-3 text-center"><button onclick="removeUser('${esc(u.username)}')" class="text-rose-600 hover:text-rose-800" title="Delete"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`).join('');
+    }
+
+    function switchTab(tabName) {
+      if (tabName === 'settings' && (!currentUser || currentUser.role !== 'admin')) return;
+      ['dashboard', 'records', 'dropdowns', 'settings'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        if (el) el.classList.add('hidden');
+      });
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      if (tabName === 'dashboard' || tabName === 'records') refreshApp();
+      if (tabName === 'dropdowns') renderDropdownManager();
+    }
+
+    function autoSetMonth() {
+      const dateVal = document.getElementById('entryDate').value;
+      if (dateVal) {
+        const d = new Date(dateVal);
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('entryMonth').value = monthNames[d.getMonth()];
+      }
+    }
+
+    function populateDropdownUI() {
+      populateSelect('filterHead', dropdowns.headAccounts, 'All Heads');
+      populateSelect('filterCity', dropdowns.cities, 'All Cities');
+
+      populateSelect('entryAmountType', dropdowns.amountTypes, '-- Select --', '');
+      populateSelect('entryHeadAccount', dropdowns.headAccounts, '-- Select --', '');
+      populateSelect('entrySubHead', dropdowns.subAccounts, '-- Select --', '');
+      populateSelect('entryCity', dropdowns.cities, '-- Select --', '');
+      populateSelect('entryNameAccount', dropdowns.names, '-- Select --', '');
+      refreshPickers();
+    }
+
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function populateSelect(elemId, array, defaultLabel = null, defaultValue = 'ALL') {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      const prev = el.value;
+      el.innerHTML = (defaultLabel ? `<option value="${defaultValue}">${defaultLabel}</option>` : '') +
+        [...array].sort((a, b) => a.localeCompare(b)).map(item => `<option value="${esc(item)}">${esc(item)}</option>`).join('');
+      if (prev && [...el.options].some(o => o.value === prev)) el.value = prev;
+    }
+
+    function setSelectValue(id, val) {
+      const el = document.getElementById(id);
+      if (val && ![...el.options].some(o => o.value === val)) el.add(new Option(val, val));
+      el.value = val;
+      refreshPickers();
+    }
+
+    /* DROPDOWN MANAGER (TABLE VIEW + SEARCH + PAGING) */
+    const ddCategories = [
+      { key: 'headAccounts', title: 'Head Accounts', field: 'headAccount' },
+      { key: 'subAccounts', title: 'Sub Heads', field: 'subHead' },
+      { key: 'cities', title: 'Cities', field: 'city' },
+      { key: 'amountTypes', title: 'Amount Types', field: 'amountType' },
+      { key: 'names', title: 'Names / Payees', field: 'nameAccount' }
+    ];
+    let activeDdKey = 'headAccounts', ddSearch = '', ddPage = 0;
+    const DD_PAGE_SIZE = 25;
+
+    function getDdCat() { return ddCategories.find(c => c.key === activeDdKey); }
+    function usageCount(cat, value) { return records.filter(r => r[cat.field] === value).length; }
+    function setDdTab(key) { activeDdKey = key; ddSearch = ''; ddPage = 0; renderDropdownManager(); }
+    function ddSearchChanged(v) { ddSearch = v; ddPage = 0; renderDdRows(); }
+    function ddGo(step) { ddPage += step; renderDdRows(); }
+    function dropdownsChanged() {
+      ddUpdatedAt = Date.now();
+      saveToStorage(); populateDropdownUI(); renderDropdownManager(); queueSync();
+    }
+
+    function renderDropdownManager() {
+      const container = document.getElementById('dropdownCategoriesList');
+      if (!container) return;
+      const cat = getDdCat();
+      const tabs = ddCategories.map(c => `
+        <button onclick="setDdTab('${c.key}')" class="px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${c.key === activeDdKey ? 'bg-emerald-700 text-white border-emerald-700' : 'bg-white text-slate-600 hover:bg-slate-100'}">
+          ${c.title} <span class="ml-1 opacity-70">(${dropdowns[c.key].length})</span>
+        </button>`).join('');
+      container.innerHTML = `
+        <div class="flex flex-wrap gap-2 mb-4">${tabs}</div>
+        <div class="flex flex-col md:flex-row gap-2 mb-4">
+          <div class="flex gap-2 flex-grow max-w-md">
+            <input type="text" id="ddNewItem" onkeydown="if(event.key==='Enter') addDropdownItem()" placeholder="New ${cat.title}..." class="w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <button onclick="addDropdownItem()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg">Add</button>
+          </div>
+          <input type="text" id="ddSearch" value="${esc(ddSearch)}" oninput="ddSearchChanged(this.value)" placeholder="Search ${cat.title}..." class="w-full md:w-64 px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div class="overflow-x-auto border rounded-lg">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px] border-b">
+                <th class="py-2.5 px-3">#</th>
+                <th class="py-2.5 px-3">${cat.title}</th>
+                <th class="py-2.5 px-3 text-center">Records Me Use</th>
+                <th class="py-2.5 px-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="ddBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div id="ddPager" class="flex items-center justify-between mt-3 text-xs text-slate-600"></div>`;
+      renderDdRows();
+    }
+
+    function renderDdRows() {
+      const cat = getDdCat();
+      const q = ddSearch.trim().toLowerCase();
+      const all = dropdowns[cat.key].map((v, i) => ({ v, i }))
+        .filter(x => !q || x.v.toLowerCase().includes(q))
+        .sort((a, b) => a.v.localeCompare(b.v));
+      const pages = Math.max(1, Math.ceil(all.length / DD_PAGE_SIZE));
+      ddPage = Math.max(0, Math.min(ddPage, pages - 1));
+      const start = ddPage * DD_PAGE_SIZE;
+      const slice = all.slice(start, start + DD_PAGE_SIZE);
+      document.getElementById('ddBody').innerHTML = slice.length ? slice.map((x, n) => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-2.5 px-3 text-slate-400 w-12">${start + n + 1}</td>
+          <td class="py-2.5 px-3 font-medium text-slate-800">${esc(x.v)}</td>
+          <td class="py-2.5 px-3 text-center">${usageCount(cat, x.v)}</td>
+          <td class="py-2.5 px-3 text-center whitespace-nowrap">
+            <button onclick="renameDropdownItem(${x.i})" class="text-blue-600 hover:text-blue-800 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="removeDropdownItem(${x.i})" class="text-rose-600 hover:text-rose-800" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="4" class="text-center py-6 text-slate-400">Koi item nahi mila.</td></tr>`;
+      document.getElementById('ddPager').innerHTML = `
+        <span>Showing ${all.length ? start + 1 : 0}-${start + slice.length} of ${all.length}</span>
+        <div class="flex items-center gap-2">
+          <button onclick="ddGo(-1)" ${ddPage === 0 ? 'disabled' : ''} class="px-3 py-1.5 border rounded bg-white hover:bg-slate-100 disabled:opacity-40">Prev</button>
+          <span>Page ${ddPage + 1} / ${pages}</span>
+          <button onclick="ddGo(1)" ${ddPage >= pages - 1 ? 'disabled' : ''} class="px-3 py-1.5 border rounded bg-white hover:bg-slate-100 disabled:opacity-40">Next</button>
+        </div>`;
+    }
+
+    function addDropdownItem() {
+      const val = document.getElementById('ddNewItem').value.trim();
+      if (!val) return;
+      const list = dropdowns[activeDdKey];
+      if (list.some(x => x.toLowerCase() === val.toLowerCase())) { alert('Ye item pehle se list me maujood hai.'); return; }
+      list.push(val);
+      dropdownsChanged();
+      document.getElementById('ddNewItem').focus();
+    }
+
+    function renameDropdownItem(idx) {
+      const cat = getDdCat();
+      const list = dropdowns[cat.key];
+      const old = list[idx];
+      const val = (prompt('Naya naam likhein:', old) || '').trim();
+      if (!val || val === old) return;
+      if (list.some((x, i) => i !== idx && x.toLowerCase() === val.toLowerCase())) { alert('Ye naam pehle se list me maujood hai.'); return; }
+      list[idx] = val;
+      records.forEach(r => { if (r[cat.field] === old) { r[cat.field] = val; r.updatedAt = Date.now(); } });
+      dropdownsChanged();
+      filterTable();
+    }
+
+    function removeDropdownItem(idx) {
+      const cat = getDdCat();
+      const list = dropdowns[cat.key];
+      const used = usageCount(cat, list[idx]);
+      if (used) { alert(`"${list[idx]}" ${used} records me use ho raha hai, isliye delete nahi ho sakta. Edit (rename) kar sakte hain.`); return; }
+      if (list.length <= 1 && cat.key !== 'names') { alert('Kam se kam ek item rehna zaroori hai.'); return; }
+      if (!confirm(`"${list[idx]}" delete karein?`)) return;
+      list.splice(idx, 1);
+      dropdownsChanged();
+    }
+
+    /* SEARCHABLE PICKER (select only, no free text) */
+    const pickerIds = ['entryAmountType', 'entryHeadAccount', 'entrySubHead', 'entryCity', 'entryNameAccount'];
+    let pickerTarget = null, pickerItems = [], pickerShown = [];
+
+    function initPickers() {
+      pickerIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel || document.getElementById(id + '_btn')) return;
+        sel.classList.add('absolute', 'inset-0', 'opacity-0', 'pointer-events-none');
+        sel.tabIndex = -1;
+        const wrap = document.createElement('div');
+        wrap.className = 'relative';
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(sel);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = id + '_btn';
+        btn.className = 'w-full px-2.5 py-1.5 border rounded-lg text-left bg-white flex justify-between items-center gap-2 focus:ring-2 focus:ring-emerald-500';
+        btn.onclick = () => openPicker(id);
+        wrap.appendChild(btn);
+      });
+    }
+
+    function refreshPickers() {
+      pickerIds.forEach(id => {
+        const sel = document.getElementById(id), btn = document.getElementById(id + '_btn');
+        if (!sel || !btn) return;
+        const v = sel.value;
+        btn.innerHTML = `<span class="${v ? 'text-slate-800' : 'text-slate-400'} truncate">${esc(v || 'Select...')}</span><i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>`;
+      });
+    }
+
+    function openPicker(id) {
+      pickerTarget = id;
+      pickerItems = [...document.getElementById(id).options].map(o => o.value).filter(Boolean);
+      const m = document.getElementById('pickerModal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+      document.getElementById('pickerSearch').value = '';
+      renderPicker();
+      document.getElementById('pickerSearch').focus();
+    }
+
+    function renderPicker() {
+      const q = document.getElementById('pickerSearch').value.trim().toLowerCase();
+      const matches = pickerItems.filter(v => !q || v.toLowerCase().includes(q));
+      pickerShown = matches.slice(0, 100);
+      document.getElementById('pickerList').innerHTML = pickerShown.length
+        ? pickerShown.map((v, i) => `<button type="button" onclick="pickValue(${i})" class="w-full text-left px-4 py-2.5 text-sm hover:bg-emerald-50">${esc(v)}</button>`).join('') +
+          (matches.length > 100 ? `<p class="p-3 text-[11px] text-center text-slate-400">${matches.length} me se pehle 100 dikh rahe hain, search se filter karein.</p>` : '')
+        : `<p class="p-4 text-xs text-slate-400 text-center">Koi item nahi mila. Pehle Manage Dropdowns me add karein.</p>`;
+    }
+
+    function pickValue(i) {
+      document.getElementById(pickerTarget).value = pickerShown[i];
+      refreshPickers();
+      closePicker();
+    }
+
+    function closePicker() {
+      const m = document.getElementById('pickerModal');
+      m.classList.add('hidden'); m.classList.remove('flex');
+    }
+
+    function refreshApp() {
+      saveToStorage();
+      updateKPIs();
+      filterTable();
+      renderCharts();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('alkhidmat_mpk_records', JSON.stringify(records));
+      localStorage.setItem('alkhidmat_mpk_dropdowns', JSON.stringify(dropdowns));
+      localStorage.setItem('alkhidmat_tomb', JSON.stringify(tomb));
+      localStorage.setItem('alkhidmat_dd_ts', String(ddUpdatedAt));
+    }
+
+    function updateKPIs() {
+      const totalIncome = records.reduce((sum, r) => sum + Number(r.income || 0), 0);
+      document.getElementById('statIncome').innerText = `PKR ${totalIncome.toLocaleString()}`;
+      document.getElementById('statCount').innerText = records.length;
+    }
+
+    function filterTable() {
+      const query = (document.getElementById('searchInput').value || '').toLowerCase();
+      const head = document.getElementById('filterHead').value;
+      const city = document.getElementById('filterCity').value;
+
+      const filtered = records.filter(r => {
+        const matchesQuery = (r.receiptNo || '').toLowerCase().includes(query) ||
+                             (r.nameAccount || '').toLowerCase().includes(query) ||
+                             (r.bookNo || '').toLowerCase().includes(query) ||
+                             (r.city || '').toLowerCase().includes(query) ||
+                             (r.mobileD || '').toLowerCase().includes(query);
+        const matchesHead = (head === 'ALL' || r.headAccount === head);
+        const matchesCity = (city === 'ALL' || r.city === city);
+        return matchesQuery && matchesHead && matchesCity;
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('ledgerTableBody');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="15" class="text-center py-6 text-slate-400">No records found.</td></tr>`;
+        return;
+      }
+
+      data.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-2.5 px-2 font-mono">${esc(r.date)}</td>
+          <td class="py-2.5 px-2">${esc(r.month)}</td>
+          <td class="py-2.5 px-2 font-semibold text-slate-700">${esc(r.bookNo)}</td>
+          <td class="py-2.5 px-2 font-semibold text-slate-800">${esc(r.receiptNo || '-')}</td>
+          <td class="py-2.5 px-2">${esc(r.amountType)}</td>
+          <td class="py-2.5 px-2 font-medium">${esc(r.headAccount)}</td>
+          <td class="py-2.5 px-2">${esc(r.subHead)}</td>
+          <td class="py-2.5 px-2">${esc(r.city)}</td>
+          <td class="py-2.5 px-2 font-medium">${esc(r.nameAccount)}</td>
+          <td class="py-2.5 px-2 text-right font-bold text-emerald-600">PKR ${Number(r.income).toLocaleString()}</td>
+          <td class="py-2.5 px-2">${esc(r.mobileD || '-')}</td>
+          <td class="py-2.5 px-2">${esc(r.email || '-')}</td>
+          <td class="py-2.5 px-2">${esc(r.refCo || '-')}</td>
+          <td class="py-2.5 px-2">${esc(r.refMobile || '-')}</td>
+          <td class="py-2.5 px-2 text-center no-print">
+            <button onclick="editEntry(${r.id})" class="text-blue-600 hover:text-blue-800 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry(${r.id})" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openModal(editId = null) {
+      populateDropdownUI();
+      document.getElementById('entryForm').reset();
+      document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+      autoSetMonth();
+      document.getElementById('entryIndex').value = '';
+
+      if (editId) {
+        const item = records.find(r => r.id === editId);
+        if (item) {
+          document.getElementById('entryIndex').value = item.id;
+          document.getElementById('entryDate').value = item.date;
+          document.getElementById('entryMonth').value = item.month;
+          document.getElementById('entryBookNo').value = item.bookNo;
+          document.getElementById('entryReceiptNo').value = item.receiptNo || '';
+          setSelectValue('entryAmountType', item.amountType);
+          setSelectValue('entryHeadAccount', item.headAccount);
+          setSelectValue('entrySubHead', item.subHead);
+          setSelectValue('entryCity', item.city);
+          setSelectValue('entryNameAccount', item.nameAccount);
+          document.getElementById('entryIncome').value = item.income;
+          document.getElementById('entryMobileD').value = item.mobileD || '';
+          document.getElementById('entryEmail').value = item.email || '';
+          document.getElementById('entryRefCo').value = item.refCo || '';
+          document.getElementById('entryRefMobile').value = item.refMobile || '';
+        }
+      }
+      refreshPickers();
+      document.getElementById('entryModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('entryModal').classList.add('hidden');
+    }
+
+    function saveEntry(e) {
+      e.preventDefault();
+      const editId = document.getElementById('entryIndex').value;
+      const receiptNoVal = document.getElementById('entryReceiptNo').value.trim();
+      if (receiptNoVal) {
+        const dupe = records.find(r => (r.receiptNo || '').trim().toLowerCase() === receiptNoVal.toLowerCase() && String(r.id) !== String(editId));
+        if (dupe) {
+          alert(`Receipt No "${receiptNoVal}" pehle se ${dupe.nameAccount || 'ek aur'} record me (${dupe.date}) use ho chuka hai. Alag Receipt No likhein.`);
+          return;
+        }
+      }
+
+      const recordObj = {
+        id: editId ? Number(editId) : Date.now(),
+        date: document.getElementById('entryDate').value,
+        month: document.getElementById('entryMonth').value,
+        bookNo: document.getElementById('entryBookNo').value,
+        receiptNo: document.getElementById('entryReceiptNo').value,
+        amountType: document.getElementById('entryAmountType').value,
+        headAccount: document.getElementById('entryHeadAccount').value,
+        subHead: document.getElementById('entrySubHead').value,
+        city: document.getElementById('entryCity').value,
+        nameAccount: document.getElementById('entryNameAccount').value,
+        income: parseFloat(document.getElementById('entryIncome').value) || 0,
+        mobileD: document.getElementById('entryMobileD').value,
+        email: document.getElementById('entryEmail').value,
+        refCo: document.getElementById('entryRefCo').value,
+        refMobile: document.getElementById('entryRefMobile').value
+      };
+
+      recordObj.updatedAt = Date.now();
+      if (editId) {
+        const idx = records.findIndex(r => r.id == editId);
+        if (idx !== -1) records[idx] = recordObj;
+      } else {
+        records.push(recordObj);
+      }
+
+      closeModal();
+      refreshApp();
+      queueSync();
+    }
+
+    function editEntry(id) { openModal(id); }
+
+    function deleteEntry(id) {
+      if (confirm('Kya aap waqai is record ko delete karna chahte hain?')) {
+        tomb[id] = Date.now();
+        records = records.filter(r => r.id !== id);
+        refreshApp();
+        queueSync();
+      }
+    }
+
+    /* EXCEL IMPORT FUNCTIONALITY */
+    function toISODate(v) {
+      if (v instanceof Date && !isNaN(v)) return new Date(v.getTime() - v.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      return v ? String(v).trim() : new Date().toISOString().split('T')[0];
+    }
+    function monthName(d) {
+      const x = new Date(d);
+      return isNaN(x) ? '' : x.toLocaleString('en-US', { month: 'long' });
+    }
+
+    function importExcelData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          let count = 0, skipped = 0;
+          const ddMap = [['headAccounts','headAccount'],['subAccounts','subHead'],['cities','city'],['amountTypes','amountType'],['names','nameAccount']];
+          const val = (row, keys, def = '') => String(keys.map(k => row[k]).find(v => v !== undefined && v !== '') ?? def).trim();
+          const seenReceipts = new Set(records.map(r => (r.receiptNo || '').trim().toLowerCase()).filter(Boolean));
+
+          jsonData.forEach(row => {
+            const incomeVal = parseFloat(row["Income*"] || row["Income"] || row["Amount"]) || 0;
+            const rNo = val(row, ["Receipt No"]);
+            if (rNo && seenReceipts.has(rNo.toLowerCase())) { skipped++; return; }
+            if (incomeVal > 0) {
+              if (rNo) seenReceipts.add(rNo.toLowerCase());
+              const date = toISODate(row["Date*"] || row["Date"]);
+              const rec = {
+                id: Date.now() + count,
+                updatedAt: Date.now(),
+                date: date,
+                month: val(row, ["Month*", "Month"], monthName(date) || "September"),
+                bookNo: val(row, ["Book No*", "Book No"], "BK-01"),
+                receiptNo: val(row, ["Receipt No"]),
+                amountType: val(row, ["Amount Type Cash-Cheque", "Amount Type"], "Cash"),
+                headAccount: val(row, ["Head Account*", "Head Account"], "General Sadqah"),
+                subHead: val(row, ["Sub Head*", "Sub Head"], "General Donation"),
+                city: val(row, ["City*", "City"], "Mirpurkhas"),
+                nameAccount: val(row, ["Name/Account*", "Name/Account"], "General Donor"),
+                income: incomeVal,
+                mobileD: val(row, ["Mobile Number (D)"]),
+                email: val(row, ["Email (if)"]),
+                refCo: val(row, ["Reference C/o"]),
+                refMobile: val(row, ["Mobile No Reference"])
+              };
+              // naye values dropdown lists me auto add (same spelling ho to existing use hoga)
+              ddMap.forEach(([k, f]) => {
+                const hit = dropdowns[k].find(x => x.toLowerCase() === rec[f].toLowerCase());
+                if (hit) rec[f] = hit; else dropdowns[k].push(rec[f]);
+              });
+              records.push(rec);
+              count++;
+            }
+          });
+
+          dropdownsChanged();
+          refreshApp();
+          alert(`${count} records import ho gaye.` + (skipped ? ` ${skipped} records duplicate Receipt No ki wajah se skip kar diye gaye.` : ''));
+        } catch (err) {
+          alert("Excel file format check karein. File read nahi ho saki.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    /* EXCEL EXPORT FUNCTIONALITY */
+    function exportExcel() {
+      const exportData = records.map(r => ({
+        "Date*": r.date,
+        "Month*": r.month,
+        "Book No*": r.bookNo,
+        "Receipt No": r.receiptNo,
+        "Amount Type Cash-Cheque": r.amountType,
+        "Head Account*": r.headAccount,
+        "Sub Head*": r.subHead,
+        "City*": r.city,
+        "Name/Account*": r.nameAccount,
+        "Income*": r.income,
+        "Mobile Number (D)": r.mobileD,
+        "Email (if)": r.email,
+        "Reference C/o": r.refCo,
+        "Mobile No Reference": r.refMobile
+      }));
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exportData), "Ledger");
+
+      ddCategories.forEach(cat => {
+        const rows = dropdowns[cat.key].map((v, i) => ({ "#": i + 1, [cat.title]: v }));
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), cat.title.slice(0, 31));
+      });
+
+      XLSX.writeFile(workbook, `Alkhidmat_MPK_Ledger_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    function renderCharts() {
+      if (typeof Chart === 'undefined') return;
+      const heads = {};
+      records.forEach(r => { heads[r.headAccount] = (heads[r.headAccount] || 0) + Number(r.income); });
+
+      const catEl = document.getElementById('categoryChart');
+      if (catEl) {
+        if (categoryChartObj) categoryChartObj.destroy();
+        categoryChartObj = new Chart(catEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: Object.keys(heads),
+            datasets: [{ label: 'Income Collection (PKR)', data: Object.values(heads), backgroundColor: '#059669' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+    }
+
+    /* OFFLINE-FIRST CLOUD SYNC (Google Sheet via Apps Script) */
+    function setSyncStatus(msg) {
+      const a = document.getElementById('syncStatus'); if (a) a.innerText = msg;
+      const b = document.getElementById('syncInfo');
+      if (b) { const t = localStorage.getItem('alkhidmat_last_sync'); b.innerText = msg + (t ? ` | Last sync: ${new Date(t).toLocaleString()}` : ''); }
+    }
+
+    function queueSync() { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(), 2500); }
+
+    function saveCloudConfig() {
+      localStorage.setItem('alkhidmat_google_url', document.getElementById('googleSheetUrl').value.trim());
+      localStorage.setItem('alkhidmat_sync_key', document.getElementById('syncKey').value.trim());
+      syncNow(true);
+    }
+
+    function mergeIn(d) {
+      const map = new Map(records.map(r => [r.id, r]));
+      (d.deleted || []).forEach(t => {
+        const l = map.get(t.id);
+        if (l && t.updatedAt >= l.updatedAt) map.delete(t.id);
+        tomb[t.id] = Math.max(tomb[t.id] || 0, t.updatedAt);
+      });
+      (d.records || []).forEach(r => {
+        if ((tomb[r.id] || 0) >= r.updatedAt) return;
+        const l = map.get(r.id);
+        if (!l || r.updatedAt > l.updatedAt) map.set(r.id, r);
+      });
+      records = [...map.values()];
+      if (d.dropdowns && d.dropdowns.updatedAt > ddUpdatedAt) { dropdowns = d.dropdowns.data; ddUpdatedAt = d.dropdowns.updatedAt; }
+      ensureDropdownKeys();
+      saveToStorage(); populateDropdownUI(); renderDropdownManager(); refreshApp();
+    }
+
+    async function syncNow(manual = false) {
+      const url = localStorage.getItem('alkhidmat_google_url');
+      if (!url) { if (manual) alert('Pehle Settings me Google Web App URL save karein.'); return; }
+      if (!navigator.onLine) { setSyncStatus('Offline (changes device par save hain)'); return; }
+      if (syncing) return;
+      syncing = true; setSyncStatus('Syncing...');
+      try {
+        const res = await fetch(url, { method: 'POST', body: JSON.stringify({
+          key: localStorage.getItem('alkhidmat_sync_key') || '',
+          records: records,
+          deleted: Object.entries(tomb).map(([id, updatedAt]) => ({ id: Number(id), updatedAt })),
+          dropdowns: { data: dropdowns, updatedAt: ddUpdatedAt }
+        }) });
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || 'Server error');
+        mergeIn(d);
+        localStorage.setItem('alkhidmat_last_sync', new Date().toISOString());
+        setSyncStatus('Synced');
+      } catch (err) {
+        console.error(err);
+        setSyncStatus('Sync failed - dobara try karein');
+      } finally { syncing = false; }
+    }
+  </script>
+</body>
+</html>
